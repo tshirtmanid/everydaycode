@@ -9,6 +9,9 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 
 static void dump_addrinfo(struct addrinfo* ai, const char* description) {
@@ -98,7 +101,7 @@ int test_common_host_with_family_host() {
     return 0;
 } 
 
-int test_cannonname() {
+int test_cannonname(int argc, char** argv) {
     struct addrinfo ai;
     memset(&ai, 0, sizeof(struct addrinfo)); 
 
@@ -110,7 +113,7 @@ int test_cannonname() {
     hints.ai_family = AF_INET;
 
     struct addrinfo* ret_ai =  NULL;
-    int ret = getaddrinfo("qq.com", NULL, &hints, &ret_ai);
+    int ret = getaddrinfo(argv[1], NULL, &hints, &ret_ai);
     if (ret != 0) {
         printf("getaddrinfo failed.err:%d\n", ret);
         return ret;
@@ -178,10 +181,52 @@ int test_getserrvbyport(int argc, char** argv) {
     return 0;
 }
 
+void test_stat() {
+
+    struct stat file_stat;
+    int ret = stat("/dev/socket/dnsproxyd.netd", &file_stat);
+    printf("stat ret:%d\n", ret);
+    printf("st_ino:%d, stnlink:%d, st_uid:%d\n", file_stat.st_ino, file_stat.st_nlink, file_stat.st_uid);
+}
+
+int test_gethostbyname(int argc, char **argv) 
+{ 
+    char *ptr, **pptr; 
+    char str [INET_ADDRSTRLEN]; 
+    struct hostent *hptr; 
+    while (--argc > 0) { 
+        ptr = *++argv; 
+        if ( (hptr = gethostbyname (ptr) ) == NULL) { 
+            printf ("gethostbyname error for host: %s: %s\n", 
+                    ptr, hstrerror (h_errno) ); 
+            continue; 
+        } 
+        printf ("official hostname: %s\n", hptr->h_name); 
+        for (pptr = hptr->h_aliases; *pptr != NULL; pptr++) 
+            printf ("\talias: %s\n", *pptr); 
+
+        switch (hptr->h_addrtype) { 
+            case AF_INET: 
+                pptr = hptr->h_addr_list; 
+                for ( ; *pptr != NULL; pptr++) 
+                    printf ("\taddress: %s\n", 
+                            inet_ntop (hptr->h_addrtype, *pptr, str, sizeof (str))); 
+                break; 
+            default: 
+                printf ("unknown address type\n"); 
+                break;                            
+        }                                 
+    }                                 
+
+    return 0;
+}                                 
+
 int main(int argc, char** argv) {
+    test_gethostbyname(argc, argv);
+    //test_stat();
     //test_getserrvbyport(argc, argv);
     //test_numericserv();
     //test_common_host_with_family_host();
     //test_common_host_empty_hints();
-    test_cannonname();
+    //test_cannonname(argc, argv);
 }
